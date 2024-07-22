@@ -1,0 +1,6 @@
+﻿Add-Migration InitialCreateFromProgress -Project fitness-db -StartupProject fitness-workout-service
+Update-Database -Project fitness-db -StartupProject fitness-workout-service
+
+Get-Migration -Project fitness-db -StartupProject fitness-workout-service
+Update-Database -Migration <nama_migration> -Project fitness-db -StartupProject fitness-workout-service
+Remove-Migration -Project fitness-db -StartupProject fitness-workout-service
