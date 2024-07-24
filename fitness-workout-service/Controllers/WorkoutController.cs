@@ -17,14 +17,14 @@ namespace fitness_workout_service.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateWorkout([FromBody]  ReqWorkoutDto workoutReq)
+        public IActionResult CreateWorkout([FromBody] ReqWorkoutDto workoutReq)
         {
             try
             {
                 if (workoutReq == null)
                     return BadRequest(new
                     {
-                        status = "failed",
+                        status = "Failed",
                         message = "Requset not valid"
                     });
 
@@ -34,18 +34,12 @@ namespace fitness_workout_service.Controllers
 
                 if (isWorkoutExist != null)
                 {
-                    ModelState.AddModelError("", "Workout already exists");
-                    if (!ModelState.IsValid)
+                    return Ok(new
                     {
-                        var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                              .Select(e => e.ErrorMessage)
-                                              .ToList();
-                        return BadRequest(new
-                        {
-                            status = "failed",
-                            errors = errors
-                        });
-                    }
+                        status = "Success",
+                        message = "Workout already exists",
+                        data = isWorkoutExist
+                    });
                 }
 
                 var workout = new Workout
@@ -58,145 +52,199 @@ namespace fitness_workout_service.Controllers
 
                 if (!_workoutRep.CreateWorkout(workout))
                 {
-                    ModelState.AddModelError("", "Something went wrong while saving");
-                    return StatusCode(500, ModelState);
+                    return StatusCode(500, new
+                    {
+                        status = "Failed",
+                        message = "Something went wrong adding workout"
+                    });
                 }
 
-                return Ok( new { 
-                    status = "success",
-                    message = "Workout Successfully created"
+                return Ok(new
+                {
+                    status = "Success",
+                    message = "Workout Successfully created",
+                    data = workout
                 });
             }
             catch (Exception e)
             {
                 return BadRequest(new
                 {
-                    status = "failed",
-                    message = e.Message
+                    status = "Failed",
+                    message = e.Message,
+                    InnerException = e.InnerException.Message
                 });
-                throw;
             }
         }
 
         [HttpPut("{workoutId}")]
         public IActionResult UpdateWorkout(int workoutId, [FromBody] ReqWorkoutDto workoutReq)
         {
-            if (workoutReq == null)
-                return BadRequest(new
-                {
-                    status = "failed",
-                    message = "Requset not valid"
-                });
-
-            var isWorkoutExist = _workoutRep.GetWorkouts()
-                    .Where(u => u.WorkoutID == workoutId)
-                    .FirstOrDefault();
-
-            if (isWorkoutExist == null)
-                return NotFound(new
-                {
-                    status = "failed",
-                    message = "Workout not found!"
-                });
-
-
-            isWorkoutExist.WorkoutID = workoutId;
-            isWorkoutExist.WorkoutName = workoutReq.WorkoutName;
-            isWorkoutExist.Description = workoutReq.Description;
-            isWorkoutExist.Duration = workoutReq.Duration;
-            isWorkoutExist.CaloriesBurned = workoutReq.CaloriesBurned;
-
-            var updatedWorkout = _workoutRep.UpdateWorkout(isWorkoutExist);
-            if (updatedWorkout == null)
+            try
             {
-                ModelState.AddModelError("", "Something went wrong updating workout");
-                return StatusCode(500, new
+                if (workoutReq == null)
+                    return BadRequest(new
+                    {
+                        status = "Failed",
+                        message = "Requset not valid"
+                    });
+
+                var isWorkoutExist = _workoutRep.GetWorkouts()
+                        .Where(u => u.WorkoutID == workoutId)
+                        .FirstOrDefault();
+
+                if (isWorkoutExist == null)
+                    return Ok(new
+                    {
+                        status = "Success",
+                        message = "Workout not found!"
+                    });
+
+
+                isWorkoutExist.WorkoutID = workoutId;
+                isWorkoutExist.WorkoutName = workoutReq.WorkoutName;
+                isWorkoutExist.Description = workoutReq.Description;
+                isWorkoutExist.Duration = workoutReq.Duration;
+                isWorkoutExist.CaloriesBurned = workoutReq.CaloriesBurned;
+
+                var updatedWorkout = _workoutRep.UpdateWorkout(isWorkoutExist);
+                if (updatedWorkout == null)
                 {
-                    status = "failed",
-                    message = "Something went wrong updating workout"
+                    return StatusCode(500, new
+                    {
+                        status = "Failed",
+                        message = "Something went wrong when updating workout"
+                    });
+                }
+
+                return Ok(new
+                {
+                    status = "Success",
+                    message = "Workout Successfully updated",
+                    data = updatedWorkout
                 });
             }
-
-            return Ok(new
+            catch (Exception e)
             {
-                status = "success",
-                message = "Workout Successfully updated",
-                data = updatedWorkout
-            });
+                return BadRequest(new
+                {
+                    status = "Failed",
+                    message = e.Message,
+                    InnerException = e.InnerException.Message
+                });
+            }
         }
 
         [HttpDelete("{workoutId}")]
         public IActionResult DeleteWorkout(int workoutId)
         {
-            var isWorkoutExist = _workoutRep.GetWorkouts()
+            try
+            {
+                var isWorkoutExist = _workoutRep.GetWorkouts()
                     .Where(u => u.WorkoutID == workoutId)
                     .FirstOrDefault();
 
-            if (isWorkoutExist == null)
-                return NotFound(new
-                {
-                    status = "failed",
-                    message = "Workout not found!"
-                });
+                if (isWorkoutExist == null)
+                    return Ok(new
+                    {
+                        status = "Success",
+                        message = "Workout not found!"
+                    });
 
-            if (!_workoutRep.DeleteWorkout(isWorkoutExist))
+                if (!_workoutRep.DeleteWorkout(isWorkoutExist))
+                {
+                    return StatusCode(500, new
+                    {
+                        status = "Failed",
+                        message = "Something went wrong deleting workout!"
+                    });
+                }
+
+                return Ok(new
+                {
+                    status = "Success",
+                    message = "Workout Successfully Deleted"
+                });
+            }
+            catch (Exception e)
             {
                 return BadRequest(new
                 {
-                    status = "failed",
-                    message = "Something went wrong deleting workout!"
+                    status = "Failed",
+                    message = e.Message,
+                    InnerException = e.InnerException.Message
                 });
             }
-
-            return Ok(new
-            {
-                status = "success",
-                message = "Workout Successfully Deleted"
-            });
         }
 
         [HttpGet]
         public IActionResult GetWorkouts()
         {
-            var allWorkouts = _workoutRep.GetWorkouts();
-
-            if (allWorkouts.Count <= 0)
+            try
             {
-                return NotFound(new
+                var allWorkouts = _workoutRep.GetWorkouts();
+
+                if (allWorkouts.Count <= 0)
                 {
-                    status = "failed",
-                    message = "Workout is empty!"
+                    return Ok(new
+                    {
+                        status = "Success",
+                        message = "Workout is empty!",
+                        dat = allWorkouts
+                    });
+                }
+
+                return Ok(new
+                {
+                    status = "Success",
+                    message = "All Workout Successfully fetched",
+                    data = allWorkouts
                 });
             }
-
-            return Ok(new
+            catch (Exception e)
             {
-                status = "success",
-                message = "All Workout Successfully fetched",
-                data = allWorkouts
-            });
+                return BadRequest(new
+                {
+                    status = "Failed",
+                    message = e.Message,
+                    InnerException = e.InnerException.Message
+                });
+            }
         }
 
         [HttpGet("{workoutId}")]
         public IActionResult GetWorkout(int workoutId)
         {
-            var workout = _workoutRep.GetWorkout(workoutId);
-
-            if (workout == null)
+            try
             {
-                return NotFound(new
+                var workout = _workoutRep.GetWorkout(workoutId);
+
+                if (workout == null)
                 {
-                    status = "failed",
-                    message = "Workout not found!"
+                    return Ok(new
+                    {
+                        status = "Succes",
+                        message = "Workout not found!",
+                        data = workout
+                    });
+                }
+
+                return Ok(new
+                {
+                    status = "Success",
+                    message = "Workout Successfully fetched",
+                    data = workout
                 });
             }
-
-            return Ok(new
+            catch (Exception e)
             {
-                status = "success",
-                message = "Workout Successfully fetched",
-                data = workout
-            });
+                return BadRequest(new
+                {
+                    status = "Failed",
+                    message = e.Message,
+                    InnerException = e.InnerException.Message
+                });
+            }
         }
     }
 }
